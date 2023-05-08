@@ -12,7 +12,11 @@ from os.path import basename, dirname, isfile, join, realpath, sep
 from urllib.parse import urljoin
 from retry import retry
 
-tries = 5
+headers = {
+    'User-Agent': None
+}
+
+tries = 1
 
 class Wiki:
 
@@ -34,7 +38,7 @@ class Wiki:
 
 		chdir(dirname(realpath(__file__)))
 
-		self.config_file  = len(sys.argv) > 1 and sys.argv[1] or self.default_config_file
+		self.config_file = self.default_config_file
 
 		if not isfile(self.config_file):
 			print('Can\'t find %s. Please copy the file config.json.example to config.json and edit the missing values.' % self.config_file, file=sys.stderr)
@@ -43,14 +47,18 @@ class Wiki:
 		with open(self.config_file, 'r') as fd:
 			config = json.loads(fd.read())
 
-		self.target       = config.get('target_wiki', 'unoffical')
+		if config['user_agent'] == None:
+			print('The field \"user_agent\" is not defined in the config.json.')
+			sys.exit(-1)
+
+
 		self.versions     = config['versions']
 		self.version      = self.versions[0]
 
 		self.api_path     = config['wiki'].get('path', '/w/api.php')
-		self.api_url      = config['wiki'][self.target]['url'].strip('/')
+		self.api_url      = config['wiki']['official']['url'].strip('/')
 		self.descriptions = self.get_descriptions()
-		self.edit_delay   = config['wiki'][self.target].get('edit_delay', self.default_edit_delay)
+		self.edit_delay   = config['wiki']['official'].get('edit_delay', self.default_edit_delay)
 		self.events       = self.get_events()
 		self.logged       = False
 		self.javadoc_url  = config['javadoc_zomboid_url']
@@ -58,11 +66,14 @@ class Wiki:
 		self.oracle_url   = config['javadoc_oracle_url']
 		self.packages     = self.get_packages()
 		self.parameters   = self.get_parameters()
-		self.password     = config['wiki'][self.target]['password']
-		self.username     = config['wiki'][self.target]['username']
+		self.password     = config['wiki']['official']['password']
+		self.username     = config['wiki']['official']['username']
 		self.saved_events = self.get_saved_events()
 		self.see_also     = self.get_see_also()
-		self.session      = requests.Session()
+		
+		headers['User-Agent'] = config['user_agent']
+
+		self.session = requests.Session()
 
 		print('Updating Wiki: ' + self.api_url)
 		if not self.api_url.endswith(self.api_path):
@@ -85,7 +96,8 @@ class Wiki:
 			'format': 'json',
 		}
 
-		jsondata = self.session.get(self.api_url, params=params).json()
+		get = self.session.get(self.api_url, params=params, headers=headers)
+		jsondata = get.json()
 		return jsondata['query']['tokens']['csrftoken']
 
 	def get_descriptions(self):
@@ -122,7 +134,9 @@ class Wiki:
 			'format': 'json',
 		}
 
-		jsondata = self.session.get(self.api_url, params=params).json()
+		get = self.session.get(self.api_url, params=params, headers=headers)
+		jsondata = get.json()
+
 		return jsondata['query']['tokens']['logintoken']
 
 	def get_obsolete_events(self):
@@ -167,7 +181,7 @@ class Wiki:
 			'format':     'json',
 		}
 
-		self.session.post(self.api_url, data=data)
+		self.session.post(self.api_url, data=data, headers=headers)
 		self.logged = True
 
 	def format_event_description(self, jsonevent):
@@ -338,7 +352,8 @@ class Wiki:
 			'text':   wikitext,
 		}
 
-		jsondata = self.session.post(self.api_url, data=data).json()
+		post = self.session.post(self.api_url, data=data, headers=headers)
+		jsondata = post.json()
 		if jsondata.get('edit', {}).get('result') != 'Success':
 			self.error(jsondata)
 
@@ -359,7 +374,7 @@ class Wiki:
 			'format': 'json',
 		}
 
-		jsondata = self.session.post(self.api_url, data=data).json()
+		jsondata = self.session.post(self.api_url, data=data, headers=headers).json()
 		if not jsondata.get('delete'):
 			err = 'The page you specified doesn\'t exist.'
 			if jsondata['error']['info'] == err:
@@ -393,6 +408,16 @@ class Wiki:
 				self.edit_page(jsonevent['title'], wikitext)
 			elif jsonevent['name'] == first:
 				first_ok = True
+
+	def update_event(self, event_name):
+		jsonevent = {
+			'name': event_name,
+			'title': 'Modding:Lua Events/' + event_name,
+		}
+		
+		wikitext = self.format_event_page(jsonevent)
+
+		self.edit_page(jsonevent['title'], wikitext)
 
 	def update_pages(self, filename):
 
