@@ -1688,6 +1688,7 @@
 		"parameters": [
 			{
 				"description": "The identifier of the player for which the context menu is being filled.",
+				"name": "player",
 				"type": "Integer"
 			},
 			{

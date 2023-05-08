@@ -658,7 +658,7 @@
 		},
 		{
 			"description": "The context menu to be filled.",
-			"type": "context",
+			"name": "context",
 			"type": "KahluaTable"
 		},
 		{
@@ -1247,8 +1247,9 @@
 	"OnPreDistributionMerge": null,
 	"OnPreFillInventoryObjectContextMenu": [
 		{
-			"description": "The player for which the context menu is being filled.",
-			"type": "IsoPlayer"
+			"description": "The player ID for which the context menu is being filled.",
+			"name": "playerID",
+			"type": "Integer"
 		},
 		{
 			"description": "The context menu to be filled.",
