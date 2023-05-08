@@ -3,7 +3,6 @@
 	"javadoc_oracle_url": "https://docs.oracle.com/en/java/javase/15/docs/api/java.base/",
 	"javadoc_zomboid_url": "https://quarantin.github.io/zomboid-javadoc/",
 	"source": "/home/co/Zomboid/sources/",
-	"target_wiki": "unofficial",
 	"versions": [ "41.56", "40.43", "39.67", "38.30" ],
 	"wiki": {
 		"official": {
@@ -11,12 +10,6 @@
 			"password": "YOUR_PASSWORD",
 			"url": "https://pzwiki.net/",
 			"edit_delay": 2
-		},
-		"unofficial": {
-			"username": "YOUR_USERNAME",
-			"password": "YOUR_PASSWORD",
-			"url": "https://pzwiki.miraheze.org/",
-			"edit_delay": 0.5
 		}
 	}
 }
